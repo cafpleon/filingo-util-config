@@ -1,0 +1,44 @@
+application:
+  # Las subclaves coinciden con los tags `mapstructure` en `AppConfig`.
+  name: "Filingo Maestros"
+  environment: "development"
+  project_root: "" # Clave en minúscula y con guion bajo.
+  version: "unversioned"
+  port: "8080"
+  generation_root: "/tmp"
+
+http:
+  port: "8080"
+  allowed_origins: "http://127.0.0.1:3000,http://127.0.0.1:5173"
+  # La clave 'connection' no estaba en nuestro struct, la he omitido.
+  # La clave 'url' tampoco, ya que 'host' y 'port' suelen ser más flexibles.
+
+database:
+  host: "127.0.0.1"
+  port: "5432"
+  name: "tmp_pcase"
+  user: "postgres"
+  password: "5432"
+  # IMPORTANTE: YAML no usa '=' para asignar valores.
+  max_connections: 10
+  min_connections: 2
+  # IMPORTANTE: Viper lee duraciones de tiempo desde strings con formato (ej: "1h", "30m", "15s").
+  max_connection_life_time: "1h"
+  max_connection_idle_time: "30m"
+  health_check_period: "1m"
+
+# IMPORTANTE: La clave aquí debe ser 'google_oauth2' para coincidir con el tag `mapstructure` en el struct `Config`.
+google_oauth2:
+  client_id: "12345-tu-client-id-aqui.apps.googleusercontent.com"
+  client_secret: "GOCSPX-tu-secreto-aqui"
+  redirect_uri: "http://localhost:8080/auth/google/callback"
+  session_secret: "un-secreto-muy-largo-y-dificil-de-adivinar-para-las-sesiones"
+  # Los otros campos como project_id, auth_uri, etc., no son necesarios para la configuración
+  # de la librería de Go oauth2, pero se podrían añadir al struct si fueran necesarios.
+
+redis:
+  address: "localhost:6379"
+  password: ""
+
+tokens: # Clave en plural para coincidir con el struct
+  duration: "15m" # Formato de duración correcto
