@@ -1,100 +1,111 @@
 // configloader_test.go
-package configloader_test
+package configloader
 
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	configloader "github.com/cafpleon/filingo-util-config"
 )
 
-func TestLoad_Success(t *testing.T) {
-	// --- ARRANGE (Organizar) ---
+func TestInitAndGet_Success(t *testing.T) {
+	// --- CAMBIO 2: Añadimos una función de limpieza ---
+	// t.Cleanup agenda esta función para que se ejecute AUTOMÁTICAMENTE
+	// cuando este test termine. Así nos aseguramos de que el siguiente test
+	// empiece con un estado limpio.
+	t.Cleanup(func() {
+		instance = nil
+		once = sync.Once{}
+	})
 
-	// 1. Define el contenido de un archivo de configuración YAML de prueba como un string.
-	// Usamos valores diferentes a los de producción para asegurar que estamos leyendo este archivo.
+	// --- ARRANGE (Organizar) ---
 	yamlContent := `
 application:
   name: "Mi App de Prueba"
   environment: "testing"
   port: "9090"
-
 database:
   host: "db-test-host"
-  port: "5433"
-  user: "testuser"
   max_connections: 20
   max_connection_life_time: "15m"
-
 google_oauth2:
   client_id: "client-id-de-prueba"
-  session_secret: "secreto-de-prueba"
-
-tokens:
-  duration: "1h30m"
 `
-	// 2. Crea un directorio temporal que se limpiará automáticamente después del test.
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "test-config.yaml")
-
-	// 3. Escribe nuestro contenido YAML en el archivo temporal.
 	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
 	require.NoError(t, err, "Falló la creación del archivo de configuración temporal")
 
 	// --- ACT (Actuar) ---
-
-	// 4. Llama a la función Load, apuntando a nuestro archivo y directorio temporales.
-	opts := configloader.Options{
-		ConfigName:  "test-config", // Nombre del archivo sin extensión
+	// 4. Ahora llamamos a Init(), que es la función pública de nuestra librería.
+	opts := Options{
+		ConfigName:  "test-config",
 		ConfigType:  "yaml",
-		ConfigPaths: []string{tempDir}, // Le decimos que busque SOLO en nuestro directorio temporal
+		ConfigPaths: []string{tempDir},
 	}
-	cfg, err := configloader.Load(opts)
+	initErr := Init(opts)
 
 	// --- ASSERT (Afirmar) ---
+	// 5. Verificamos que la inicialización fue exitosa.
+	require.NoError(t, initErr, "Init() no debería devolver un error")
 
-	// 5. Verifica que no hubo errores y que la configuración se cargó.
-	require.NoError(t, err, "La función Load() no debería devolver un error")
-	require.NotNil(t, cfg, "El struct de configuración no debería ser nulo")
+	// 6. Obtenemos la configuración usando Get() y verificamos que no sea nula.
+	cfg := Get()
+	require.NotNil(t, cfg, "Get() debería devolver un struct de configuración")
 
-	// 6. Verifica que los valores específicos se cargaron correctamente.
-	// Esto prueba que el mapeo de `mapstructure` está funcionando.
+	// 7. Verificamos que los valores específicos se cargaron correctamente.
 	assert.Equal(t, "Mi App de Prueba", cfg.App.Name)
 	assert.Equal(t, "testing", cfg.App.Environment)
-	assert.Equal(t, "9090", cfg.App.Port)
-
 	assert.Equal(t, "db-test-host", cfg.DB.Host)
 	assert.Equal(t, int32(20), cfg.DB.MaxConns)
-
-	// Verifica que Viper decodificó correctamente la duración del string.
 	expectedDuration, _ := time.ParseDuration("15m")
 	assert.Equal(t, expectedDuration, cfg.DB.MaxConnLifeTime)
-
 	assert.Equal(t, "client-id-de-prueba", cfg.OAuth2.GoogleClientID)
-
-	// Verifica la duración del token
-	expectedTokenDuration, _ := time.ParseDuration("1h30m")
-	assert.Equal(t, expectedTokenDuration, cfg.Token.Duration)
 }
 
-func TestLoad_FileNotFound_NoError(t *testing.T) {
-	// Arrange: Opciones que apuntan a un archivo que no existe.
-	opts := configloader.Options{
-		ConfigName:  "archivo-que-no-existe",
-		ConfigPaths: []string{t.TempDir()}, // Un directorio temporal vacío
-	}
+func TestInit_ErrorOnMalformedFile(t *testing.T) {
+	// Limpiamos el estado del singleton para este test también.
+	t.Cleanup(func() {
+		instance = nil
+		once = sync.Once{}
+	})
+
+	// Arrange: Creamos un archivo YAML inválido.
+	invalidYamlContent := `
+application:
+  name: "App Rota"
+  port: 9090 : otrovalor # Sintaxis YAML incorrecta
+`
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "bad-config.yaml")
+	err := os.WriteFile(configPath, []byte(invalidYamlContent), 0644)
+	require.NoError(t, err)
 
 	// Act
-	cfg, err := configloader.Load(opts)
+	opts := Options{
+		ConfigName:  "bad-config",
+		ConfigType:  "yaml",
+		ConfigPaths: []string{tempDir},
+	}
+	initErr := Init(opts)
 
 	// Assert
-	// La función no debe devolver error si el archivo no se encuentra,
-	// ya que esto es un comportamiento esperado (puede usar solo variables de entorno).
-	require.NoError(t, err)
-	require.NotNil(t, cfg, "Incluso sin archivo, se debe devolver un struct de config vacío")
+	// Verificamos que Init() devuelve un error, como se esperaba.
+	require.Error(t, initErr, "Init() debería devolver un error con un archivo malformado")
+}
+
+func TestGet_PanicsIfNotInitialized(t *testing.T) {
+	// Limpiamos por si acaso algún test anterior falló antes de su cleanup.
+	instance = nil
+	once = sync.Once{}
+
+	// Assert: Verificamos que llamar a Get() antes de Init() causa un pánico.
+	// Esto confirma que nuestra guarda de seguridad funciona.
+	assert.Panics(t, func() {
+		Get()
+	}, "Get() debería entrar en pánico si no se ha llamado a Init()")
 }

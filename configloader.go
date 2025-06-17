@@ -5,8 +5,10 @@
 package configloader
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -21,6 +23,14 @@ En viper.Unmarshal(&cfg), Viper ve el campo MaxConns,
    mira su tag mapstructure y busca una clave llamada max_connections dentro de la sección database de tu archivo YAML.
    Encuentra el valor 10 y lo asigna automáticamente al campo MaxConns.
 */
+
+// --- SINGLETON GLOBAL ---
+var (
+	// instance contendrá la única instancia de la configuración cargada.
+	instance *Config
+	// once asegura que la configuración se cargue una sola vez.
+	once sync.Once
+)
 
 // --- ESTRUCTURAS DE CONFIGURACIÓN PÚBLICAS ---
 // Todos los campos deben ser públicos (empezar con Mayúscula) para que Viper pueda llenarlos.
@@ -96,11 +106,55 @@ type Options struct {
 	EnvPrefix   string   // ej: "MYAPP"
 }
 
-// --- 3. FUNCIÓN DE CARGA PRINCIPAL ---
+// --- 3. FUNCIONES PÚBLICAS DE LA LIBRERÍA ---
 
+// Init carga la configuración usando las opciones dadas y la almacena como un singleton.
+// Debe ser llamada una sola vez al inicio de la aplicación. Es seguro llamarla múltiples veces.
+func Init(opts Options) error {
+	var err error
+	once.Do(func() {
+		// Llama a nuestra lógica de carga interna
+		cfg, loadErr := load(opts)
+		if loadErr != nil {
+			err = loadErr
+			return
+		}
+		instance = cfg
+	})
+	return err
+}
+
+// Get devuelve la instancia singleton de la configuración.
+// Entrará en pánico si Init() no ha sido llamado exitosamente antes.
+func Get() *Config {
+	if instance == nil {
+		panic("configloader: la configuración no ha sido inicializada. Llama a Init() primero.")
+	}
+	return instance
+}
+
+// configKey es un tipo privado para usar como clave en el contexto y evitar colisiones.
+type configKey struct{}
+
+// ToContext devuelve un nuevo contexto que contiene la configuración proporcionada.
+func ToContext(ctx context.Context, cfg *Config) context.Context {
+	return context.WithValue(ctx, configKey{}, cfg)
+}
+
+// FromContext extrae la configuración del contexto.
+// Devuelve el puntero a la configuración y un booleano 'ok' que es 'true' si se encontró.
+// Si no se encuentra, devuelve nil y false.
+func FromContext(ctx context.Context) (*Config, bool) {
+	cfg, ok := ctx.Value(configKey{}).(*Config)
+	return cfg, ok
+}
+
+// --- LÓGICA DE CARGA INTERNA (NO PÚBLICA) ---
+
+// load es la función interna que hace el trabajo pesado con Viper.
 // Load busca, carga y decodifica la configuración en un struct Config.
 // Devuelve un error si algo falla, permitiendo al programa principal manejarlo.
-func Load(opts Options) (*Config, error) {
+func load(opts Options) (*Config, error) {
 	v := viper.New()
 
 	// Configurar Viper con las opciones proporcionadas por el usuario.
