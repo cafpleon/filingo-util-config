@@ -29,6 +29,7 @@ application:
   environment: "testing"
   port: 9090
 database:
+  driver: "db-test-driver"
   host: "db-test-host"
   max_connections: 20
   max_connection_life_time: "15m"
@@ -61,6 +62,7 @@ google_oauth2:
 	assert.Equal(t, "Mi App de Prueba", cfg.App.Name)
 	assert.Equal(t, "testing", cfg.App.Environment)
 	assert.Equal(t, "db-test-host", cfg.DB.Host)
+	assert.Equal(t, "db-test-driver", cfg.DB.Driver)
 	assert.Equal(t, int32(20), cfg.DB.MaxConns)
 	expectedDuration, _ := time.ParseDuration("15m")
 	assert.Equal(t, expectedDuration, cfg.DB.MaxConnLifeTime)

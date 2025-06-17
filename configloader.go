@@ -59,6 +59,7 @@ type AppConfig struct {
 
 // DBConfig contiene la configuración de la base de datos.
 type DBConfig struct {
+	Driver            string        `mapstructure:"driver"`
 	User              string        `mapstructure:"user"`
 	Password          string        `mapstructure:"password"`
 	Host              string        `mapstructure:"host"`
