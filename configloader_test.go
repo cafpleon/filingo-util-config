@@ -27,7 +27,7 @@ func TestInitAndGet_Success(t *testing.T) {
 application:
   name: "Mi App de Prueba"
   environment: "testing"
-  port: "9090"
+  port: 9090
 database:
   host: "db-test-host"
   max_connections: 20

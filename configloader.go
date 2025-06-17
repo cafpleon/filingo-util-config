@@ -51,7 +51,7 @@ type Config struct {
 type AppConfig struct {
 	Name           string `mapstructure:"name"`
 	Environment    string `mapstructure:"environment"`
-	Port           string `mapstructure:"port"`
+	Port           int32  `mapstructure:"port"`
 	Version        string `mapstructure:"version"`
 	ProjectRoot    string `mapstructure:"project_root"`
 	GenerationRoot string `mapstructure:"generation_root"`
@@ -62,7 +62,7 @@ type DBConfig struct {
 	User              string        `mapstructure:"user"`
 	Password          string        `mapstructure:"password"`
 	Host              string        `mapstructure:"host"`
-	Port              string        `mapstructure:"port"`
+	Port              int32         `mapstructure:"port"`
 	Name              string        `mapstructure:"name"`
 	MaxConns          int32         `mapstructure:"max_connections"`
 	MinConns          int32         `mapstructure:"min_connections"`
@@ -73,7 +73,7 @@ type DBConfig struct {
 
 // HTTPConfig contiene la configuración del servidor HTTP.
 type HTTPConfig struct {
-	Port           string `mapstructure:"port"`
+	Port           int32  `mapstructure:"port"`
 	AllowedOrigins string `mapstructure:"allowed_origins"`
 }
 

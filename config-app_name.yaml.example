@@ -4,18 +4,18 @@ application:
   environment: "development"
   project_root: "" # Clave en minúscula y con guion bajo.
   version: "unversioned"
-  port: "8080"
+  port: 8080
   generation_root: "/tmp"
 
 http:
-  port: "8080"
+  port: 8080
   allowed_origins: "http://127.0.0.1:3000,http://127.0.0.1:5173"
   # La clave 'connection' no estaba en nuestro struct, la he omitido.
   # La clave 'url' tampoco, ya que 'host' y 'port' suelen ser más flexibles.
 
 database:
   host: "127.0.0.1"
-  port: "5432"
+  port: 5432
   name: "tmp_pcase"
   user: "postgres"
   password: "5432"
