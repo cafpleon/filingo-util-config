@@ -28,7 +28,6 @@ database:
   max_connection_idle_time: "30m"
   health_check_period: "1m"
 
-# IMPORTANTE: La clave aquí debe ser 'google_oauth2' para coincidir con el tag `mapstructure` en el struct `Config`.
 google_oauth2:
   client_id: "12345-tu-client-id-aqui.apps.googleusercontent.com"
   client_secret: "GOCSPX-tu-secreto-aqui"
@@ -36,10 +35,10 @@ google_oauth2:
   session_secret: "un-secreto-muy-largo-y-dificil-de-adivinar-para-las-sesiones"
   # Los otros campos como project_id, auth_uri, etc., no son necesarios para la configuración
   # de la librería de Go oauth2, pero se podrían añadir al struct si fueran necesarios.
-
 redis:
   address: "localhost:6379"
   password: ""
-
 tokens: # Clave en plural para coincidir con el struct
-  duration: "15m" # Formato de duración correcto
+  duration: "24h"
+  private_key_b64: "PEGA_AQUÍ_TU_CLAVE_PRIVADA_GENERADA"
+  public_key_b64: "PEGA_AQUÍ_TU_CLAVE_PÚBLICA_GENERADA"

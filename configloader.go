@@ -89,12 +89,17 @@ type OAuthConfig struct {
 	GoogleClientID     string `mapstructure:"client_id"`
 	GoogleClientSecret string `mapstructure:"client_secret"`
 	GoogleRedirectURI  string `mapstructure:"redirect_uri"`
-	SessionSecret      string `mapstructure:"session_secret"`
+	// El session_secret es más para sesiones de cookies,
+	// para PASETO necesitaremos
+	//    una clave simétrica o un par de claves pública/privada
+	SessionSecret string `mapstructure:"session_secret"`
 }
 
 // TokenConfig contiene la configuración para la generación de tokens.
 type TokenConfig struct {
-	Duration time.Duration `mapstructure:"duration"`
+	Duration      time.Duration `mapstructure:"duration"`
+	PrivateKeyB64 string        `mapstructure:"private_key_b64"`
+	PublicKeyB64  string        `mapstructure:"public_key_b64"`
 }
 
 // ---  OPCIONES DE CARGA ---
